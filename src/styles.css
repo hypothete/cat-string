@@ -3,3 +3,9 @@ body {
 	height: 100vh;
 	margin: 0;
 }
+
+#cam {
+	position: absolute;
+	left: 0;
+	top: 0;
+}

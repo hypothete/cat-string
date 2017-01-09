@@ -2,6 +2,12 @@ Physics(function(){
     var world = this;
     var mousedown = false;
 
+    var cam = document.querySelector('#cam');
+
+    cam.onload = function(){
+        console.log('event');
+    };
+
     // subscribe to the ticker
     Physics.util.ticker.on(function( time ){
         world.step( time );
@@ -23,10 +29,10 @@ Physics(function(){
         styles: {
             // set colors for the circle bodies
             'circle' : {
-                strokeStyle: 'hsla(60, 37%, 17%, 1)',
+                strokeStyle: '#333',
                 lineWidth: 1,
-                fillStyle: 'hsla(60, 37%, 57%, 0.8)',
-                angleIndicator: 'hsla(60, 37%, 17%, 0.4)'
+                fillStyle: '#f02024',
+                angleIndicator: '#333'
             }
         }
     });
@@ -55,7 +61,7 @@ Physics(function(){
             })
         );
 
-        rigidConstraints.distanceConstraint( rope[ l - 1 ], rope[ l - 2 ], 2);
+        rigidConstraints.distanceConstraint( rope[ l - 1 ], rope[ l - 2 ], 2 );
     }
 
     rope[ 0 ].treatment = 'static';
