@@ -116,7 +116,8 @@
             // data.y; // the y coord
             // data.body; // the grabbed body that was moved (if applicable)
 
-            if(mousedown && data.body){
+            if(data.body){
+                console.log(Math.random());
                 ropeClicked = true;
                 data.body.state.pos.x = data.x;
                 data.body.state.pos.y = data.y;
@@ -154,6 +155,14 @@
         });
 
         renderer.container.addEventListener('mouseup', function(){
+            mousedown = false;
+        });
+
+        renderer.container.addEventListener('touchstart', function(){
+            mousedown = true;
+        });
+
+        renderer.container.addEventListener('touchend', function(){
             mousedown = false;
         });
 
