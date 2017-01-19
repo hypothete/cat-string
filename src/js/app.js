@@ -6,6 +6,7 @@
         var world = this;
         var mousedown = false;
         var worldBounds;
+        var ropes = [];
 
         // var cam = document.querySelector('#cam');
 
@@ -50,50 +51,75 @@
 
         var interactive = Physics.behavior('interactive', { el: renderer.container, moveThrottle: 5 });
 
-        var rope = [];
-        var linkRadius = 15;
-        var linkRatio = 2;
-        var linkNumber = 35;
-        var ropeClicked = false;
-
-        for ( var i = 0; i < linkNumber; i++ ){
-
-            var l = rope.push(
-                Physics.body('circle', {
-                    x: renderer.width/2 + i*5,
-                    y: 50,
-                    radius: linkRadius,
-                    mass: 0.001,
-                    restitution: 0.9,
-                    hidden: true
-                })
-            );
-
-            rigidConstraints.distanceConstraint( rope[ l - 1 ], rope[ l - 2 ], 1, linkRadius * linkRatio );
-        }
-
-        rope[ 0 ].treatment = 'static';
-
-        function drawRope(){
-            for(var i=0; i<rope.length-1; i++){
-                renderer.drawLine(rope[i].state.pos, rope[i+1].state.pos, {
-                    strokeStyle: ropeClicked ? '#0066ff' : '#ff0000',
-                    lineWidth: 15, //(rope.length-1 - i) //tentacle!
-                    lineCap: 'round'
-                });
-            }
-        }
-
-        function moveRopeEnd( time ){
-            var lissajous = {
-                a: 3,
-                b: 4,
-                d: Math.PI/2,
-                A: renderer.width/1.5,
-                B: renderer.height/4
+        function Rope(options){
+            options = options || {};
+            var ropeObject = {
+                id: Math.round(Math.random()*1000).toString(16),
+                links: [],
+                clicked: false,
+                linkRadius : options.links || 15,
+                linkRatio : options.linkRatio || 2,
+                linkNumber : options.linkNumber || 35,
+                speed: options.speed || 1/10000,
+                drawRope: drawRope,
+                moveRopeEnd: moveRopeEnd,
+                hasLink:hasLink
             };
-            rope[0].state.pos.x = renderer.width/2 + lissajous.A*Math.sin(lissajous.a*time + lissajous.d);
-            rope[0].state.pos.y = -lissajous.B + lissajous.B*Math.sin(lissajous.b*time);
+
+            init();
+
+            return ropeObject;
+
+            function init(){
+                for ( var i = 0; i < ropeObject.linkNumber; i++ ){
+
+                    var l = ropeObject.links.push(
+                        Physics.body('circle', {
+                            x: renderer.width/2 + i*5,
+                            y: 50,
+                            radius: ropeObject.linkRadius,
+                            mass: 0.001,
+                            restitution: 0.9,
+                            hidden: true
+                        })
+                    );
+
+                    rigidConstraints.distanceConstraint( ropeObject.links[ l - 1 ], ropeObject.links[ l - 2 ], 1, ropeObject.linkRadius * ropeObject.linkRatio );
+                }
+
+                ropeObject.links[ 0 ].treatment = 'static';
+            }
+            
+            function drawRope(){
+                for(var i=0; i<ropeObject.links.length-1; i++){
+                    renderer.drawLine(ropeObject.links[i].state.pos, ropeObject.links[i+1].state.pos, {
+                        strokeStyle: ropeObject.clicked ? '#0066ff' : '#ff0000',
+                        lineWidth: 15, //(rope.length-1 - i) //tentacle!
+                        lineCap: 'round'
+                    });
+                }
+            }
+
+            function moveRopeEnd( time ){
+                var lissajous = {
+                    a: 3,
+                    b: 4,
+                    d: Math.PI/2,
+                    A: renderer.width/1.5,
+                    B: renderer.height/4
+                };
+                ropeObject.links[0].state.pos.x = renderer.width/2 + lissajous.A*Math.sin(lissajous.a*time*ropeObject.speed + lissajous.d);
+                ropeObject.links[0].state.pos.y = -lissajous.B + lissajous.B*Math.sin(lissajous.b*time*ropeObject.speed);
+            }
+
+            function hasLink(link){
+                for(var i in ropeObject.links){
+                    if(link === ropeObject.links[i]){
+                        return true;
+                    }
+                }
+                return false;
+            }
         }
 
 
@@ -109,34 +135,49 @@
             interactive,
             renderer
         ]);
-        world.add(rope);
-
+        
+        for(var i=0; i<5; i++){
+            ropes.push(new Rope({speed: 1/(10000 + Math.random()*4000-2000)}));
+        }
+        
+        ropes.forEach(function(rope){
+            world.add(rope.links);
+        });
+        
         world.on('interact:move', function( data ){
             // data.x; // the x coord
             // data.y; // the y coord
             // data.body; // the grabbed body that was moved (if applicable)
 
             if(data.body){
-                console.log(Math.random());
-                ropeClicked = true;
+
+                for(var i in ropes){
+                    if(ropes[i].hasLink(data.body)){
+                        ropes[i].clicked = true;
+                    }
+                }
                 data.body.state.pos.x = data.x;
                 data.body.state.pos.y = data.y;
             }
         });
 
-        world.on('interact:release', function( data ){
-            ropeClicked = false;
+        world.on('interact:release', function(){
+            for(var i in ropes){
+                ropes[i].clicked = false;
+            }
         });
 
         // subscribe to the ticker
         Physics.util.ticker.on(function( time ){
             world.step( time );
-
-            moveRopeEnd( time/4000 );
             
             world.render();
 
-            drawRope();
+            for(var i in ropes){
+                ropes[i].moveRopeEnd(time );
+                ropes[i].drawRope();
+            }
+
         });
         // start the ticker
         Physics.util.ticker.start();
